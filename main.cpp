@@ -6,22 +6,33 @@
 #include <iomanip>
 #include <filesystem>
 #include <fstream>
+#include <sstream>
+using namespace std;
 
-void Parser(std::string input)
+std::string Parser(std::string input)
 {
     std::stack<std::string> parser;
-    if (parser.empty())
+    std::string parsed;
+    std::stringstream input_stringstream(input);
+    while (std::getline(input_stringstream, parsed, ' '))
     {
-        parser.push(input);
+        if (!parsed.empty())
+            std::cout << parsed << "\n";
     }
 
-    std::cout << parser.top();
+    return parsed;
 }
 
 std::string Direction()
 {
-    const char *home = std::getenv("HOME");
-    return std::string(home);
+    return std::filesystem::current_path().string();
+}
+
+std::string CurrentFolder()
+{
+    const auto current_path = std::filesystem::current_path();
+    const auto folder = current_path.filename().string();
+    return folder.empty() ? current_path.root_name().string() : folder;
 }
 
 int main()
@@ -29,8 +40,7 @@ int main()
     std::string input;
     while (input != "exit")
     {
-        std::cout << "\n"
-                  << "shell@me > ";
+        std::cout << "shell@me " << CurrentFolder() << " > ";
         std::getline(std::cin, input);
 
         if (input == "ls")
@@ -46,12 +56,40 @@ int main()
         {
             std::cout << Direction();
         }
-        if (input == "mkdir"){
-            std::filesystem::create_directory()
+        std::stringstream command_stream(input);
+        std::string command;
+        std::string argument;
+        command_stream >> command >> argument;
+
+        if (command == "cd")
+        {
+            if (argument.empty() || argument == "~")
+            {
+                const char *home = std::getenv("HOME");
+                argument = home ? home : ".";
+            }
+
+            std::error_code error;
+            std::filesystem::current_path(argument, error);
+            if (error)
+            {
+                std::cerr << "cd: " << error.message() << '\n';
+            }
         }
-        if (input == "touch"){
-            std::ofstream file()
+        if (command == "mkdir")
+        {
+            if (argument.empty())
+            {
+                std::cerr << "mkdir: missing directory name\n";
+            }
+            else if (!filesystem::create_directory(argument))
+            {
+                std::cerr << "mkdir: could not create directory\n";
+            }
+        }
+        if (command == "touch")
+        {
+            std::ofstream file(argument);
         }
     }
-    Parser(input);
 }
